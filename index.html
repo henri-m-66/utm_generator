@@ -118,6 +118,10 @@
       <div class="action-buttons">
         <button class="btn btn-secondary" id="copyAll" style="display:none"
                 onclick="copyAll()">📋 Alle Links kopieren</button>
+        <button class="btn btn-secondary" id="copyOnlyMRB" style="display:none"
+                onclick="copyOnlyMRB()">📋 Nur MRB-Links kopieren</button>
+        <button class="btn btn-secondary" id="copyOnlyJetzt" style="display:none"
+                onclick="copyOnlyJetzt()">📋 Nur Jetzt-Links kopieren</button>
       </div>
       <!-- Ergebnisse -------------------------------------------->
       <div id="results" class="results-section">
@@ -347,24 +351,92 @@ function generate () {
   const hasRows = selected.length && urlInput;
   document.getElementById('results').style.display   = hasRows ? 'block' : 'none';
   document.getElementById('copyAll').style.display   = hasRows ? 'inline-block' : 'none';
+  // Show/hide extra buttons for MRB/jetzt
+  document.getElementById('copyOnlyMRB').style.display = (hasRows && currentChannel === 'mrb') ? 'inline-block' : 'none';
+  document.getElementById('copyOnlyJetzt').style.display = (hasRows && currentChannel === 'jetzt') ? 'inline-block' : 'none';
 }
 function copyLink(btn){
   const link = btn.parentElement.previousElementSibling.textContent;
   navigator.clipboard.writeText(link);
 }
 function copyAll(){
+  if (currentChannel === 'mrb' || currentChannel === 'jetzt') {
+    // Copy MRB/Jetzt links, then SZ-UTM-Links
+    const prevChannel = currentChannel;
+    const currentRows = [...document.querySelectorAll('#tbody tr')];
+    const currentLines = currentRows.map(row => {
+      const platform = row.children[0].textContent.trim();
+      const link = row.children[1].textContent.trim();
+      return `*${platform}:* ${link}`;
+    });
+    let currentHeading = currentChannel === 'mrb' ? '*MRB-UTM-Links*' : '*Jetzt-UTM-Links*';
+    // Temporarily switch to main, generate links, then switch back
+    initGrid('main');
+    generate();
+    const szRows = [...document.querySelectorAll('#tbody tr')];
+    const szLines = szRows.map(row => {
+      const platform = row.children[0].textContent.trim();
+      const link = row.children[1].textContent.trim();
+      return `*${platform}:* ${link}`;
+    });
+    const szHeading = '*SZ-UTM-Links*';
+    // Restore previous channel
+    initGrid(prevChannel);
+    generate();
+    navigator.clipboard.writeText(`${currentHeading}\n\n${currentLines.join('\n\n')}\n\n${szHeading}\n\n${szLines.join('\n\n')}`);
+  } else {
+    // Default: just current links
+    const rows = [...document.querySelectorAll('#tbody tr')];
+    const lines = rows.map(row => {
+      const platform = row.children[0].textContent.trim();
+      const link = row.children[1].textContent.trim();
+      return `*${platform}:* ${link}`;
+    });
+    let heading = '';
+    if (currentChannel === 'main') heading = '*SZ-UTM-Links*';
+    else if (currentChannel === 'mrb') heading = '*MRB-UTM-Links*';
+    else if (currentChannel === 'jetzt') heading = '*Jetzt-UTM-Links*';
+    else heading = '*UTM-Links*';
+    navigator.clipboard.writeText(`${heading}\n\n${lines.join('\n\n')}`);
+  }
+}
+
+function copyOnlyMRB(){
+  let prevChannel = currentChannel;
+  if (currentChannel !== 'mrb') {
+    initGrid('mrb');
+    generate();
+  }
   const rows = [...document.querySelectorAll('#tbody tr')];
   const lines = rows.map(row => {
     const platform = row.children[0].textContent.trim();
     const link = row.children[1].textContent.trim();
     return `*${platform}:* ${link}`;
   });
-  let heading = '';
-  if (currentChannel === 'main') heading = '*SZ-UTM-Links*';
-  else if (currentChannel === 'mrb') heading = '*MRB-UTM-Links*';
-  else if (currentChannel === 'jetzt') heading = '*Jetzt-UTM-Links*';
-  else heading = '*UTM-Links*';
-  navigator.clipboard.writeText(`${heading}\n\n${lines.join('\n\n')}`);
+  navigator.clipboard.writeText(`*MRB-UTM-Links*\n\n${lines.join('\n\n')}`);
+  if (prevChannel !== 'mrb') {
+    initGrid(prevChannel);
+    generate();
+  }
+}
+
+function copyOnlyJetzt(){
+  let prevChannel = currentChannel;
+  if (currentChannel !== 'jetzt') {
+    initGrid('jetzt');
+    generate();
+  }
+  const rows = [...document.querySelectorAll('#tbody tr')];
+  const lines = rows.map(row => {
+    const platform = row.children[0].textContent.trim();
+    const link = row.children[1].textContent.trim();
+    return `*${platform}:* ${link}`;
+  });
+  navigator.clipboard.writeText(`*Jetzt-UTM-Links*\n\n${lines.join('\n\n')}`);
+  if (prevChannel !== 'jetzt') {
+    initGrid(prevChannel);
+    generate();
+  }
 }
 
   </script>
