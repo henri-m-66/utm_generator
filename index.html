@@ -83,7 +83,7 @@
                  placeholder="https://www.sueddeutsche.de/politik/artikel-titel-li.3278931" required>
 <small style="color:#666;font-size:.9em">
   ID &amp; Stichwort werden automatisch erkannt und die URL verkürzt.<br>
-  Unterstützte Links: li.XXXXXXX (Livingdocs) · eXXXXXX (Storytellings inkl. Jetzt) · X.XXXXXXX (Polopoly) · XXXXX (SZ-Magazin)
+  Unterstützte Links: li.XXXXXXX (Livingdocs) · eXXXXXX (Storytellings inkl. Jetzt) · lux.XYZ (Lux) · X.XXXXXXX (Polopoly) · XXXXX (SZ-Magazin)
 </small>
 
         </div>
@@ -101,7 +101,6 @@
         <button data-ch="main"   class="tab active">Hauptkanal</button>
         <button data-ch="mrb"    class="tab">MRB</button>
         <button data-ch="jetzt"  class="tab">Jetzt</button>
-        <button data-ch="magaz"  class="tab">Magazin</button>
       </div>
       <!-- Plattform Auswahl -->
       <div class="platform-selection">
@@ -185,6 +184,9 @@ function extractID(url) {
   if (e) return e[1];
   const num = url.match(/-(\d+\.\d+)$/);
   if (num) return num[1];
+  // lux ID detection: e.g. https://www.sueddeutsche.de/kultur/ozzy-osbourne-tod-nachruf-black-sabbath-lux.VFMwawAw4M5pqWbiAJtJSH
+  const lux = url.match(/-((lux\.[A-Za-z0-9]+))$/);
+  if (lux) return lux[1];
   return '';
 }
 
@@ -205,6 +207,7 @@ function shorten(url, id) {
       return `https://www.sz.de/projekte/artikel/ressort/${id}`;
     }
   }
+  if (id.startsWith('lux.')) return `https://www.sz.de/${id}`;
   if (id.includes('.')) return `https://www.sz.de/${id}`;
   return url;
 }
@@ -354,9 +357,14 @@ function copyAll(){
   const lines = rows.map(row => {
     const platform = row.children[0].textContent.trim();
     const link = row.children[1].textContent.trim();
-    return `${platform}: ${link}`;
+    return `*${platform}:* ${link}`;
   });
-  navigator.clipboard.writeText(lines.join('\n\n'));
+  let heading = '';
+  if (currentChannel === 'main') heading = '*SZ-UTM-Links*';
+  else if (currentChannel === 'mrb') heading = '*MRB-UTM-Links*';
+  else if (currentChannel === 'jetzt') heading = '*Jetzt-UTM-Links*';
+  else heading = '*UTM-Links*';
+  navigator.clipboard.writeText(`${heading}\n\n${lines.join('\n\n')}`);
 }
 
   </script>
